@@ -224,6 +224,9 @@ if (APPLE AND NOT IOS)
 		"-framework Foundation"
 		"-framework AppKit"
 	)
+	set(MACOS_ICON "${CMAKE_CURRENT_SOURCE_DIR}/zuma/Zuma-Portable.icns")
+	set_source_files_properties(${MACOS_ICON} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+	target_sources(pvz-portable PRIVATE ${MACOS_ICON})
 	set_target_properties(pvz-portable PROPERTIES
 		MACOSX_BUNDLE TRUE
 		MACOSX_BUNDLE_GUI_IDENTIFIER "io.itch.ksylvestre.zuma-portable"
@@ -379,4 +382,18 @@ elseif (IOS)
 		set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/ios/Assets.xcassets"
 			PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 	endif()
+endif()
+
+if(APPLE AND NOT IOS)
+	add_custom_target(dmg
+		COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_BINARY_DIR}/dmg"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/dmg"
+		COMMAND ${CMAKE_COMMAND} -E copy_directory
+			"$<TARGET_BUNDLE_DIR:pvz-portable>" "${CMAKE_BINARY_DIR}/dmg/Zuma Portable.app"
+		COMMAND hdiutil create -volname "Zuma Portable" -srcfolder "${CMAKE_BINARY_DIR}/dmg"
+			-ov -format UDZO "${CMAKE_BINARY_DIR}/ZumaPortable.dmg"
+		COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_BINARY_DIR}/dmg"
+		DEPENDS pvz-portable
+		COMMENT "Creating ZumaPortable.dmg"
+	)
 endif()

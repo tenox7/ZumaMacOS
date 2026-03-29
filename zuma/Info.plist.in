@@ -8,8 +8,8 @@
     <string>en</string>
     <key>CFBundleExecutable</key>
     <string>zuma-portable</string>
-    <key>CFBundleIconName</key>
-    <string>AppIcon</string>
+    <key>CFBundleIconFile</key>
+    <string>Zuma-Portable</string>
     <key>CFBundleIdentifier</key>
     <string>io.itch.ksylvestre.zuma-portable</string>
     <key>CFBundleInfoDictionaryVersion</key>
