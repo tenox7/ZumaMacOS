@@ -101,6 +101,9 @@ else()
 		set(OGG_LIB Ogg::ogg)
 		set(OPENMPT_LIB libopenmpt::libopenmpt)
 		set(MPG123_LIB MPG123::libmpg123)
+		# vcpkg provides ogg/vorbis — remove bundled sources to avoid duplicates
+		file(GLOB BUNDLED_OGG src/SexyAppFramework/ogg/*.c)
+		list(REMOVE_ITEM SOURCES ${BUNDLED_OGG})
 	else()
 		find_library(OGG_LIBRARY NAMES ogg libogg REQUIRED)
 		find_library(VORBIS_LIBRARY NAMES vorbis libvorbis REQUIRED)
@@ -180,6 +183,7 @@ set(USE_XMP OFF CACHE BOOL "SDL Mixer X xmp")
 set(USE_OPUS OFF CACHE BOOL "SDL Mixer X opus")
 set(USE_DRFLAC OFF CACHE BOOL "SDL Mixer X flac")
 set(USE_PXTONE OFF CACHE BOOL "SDL Mixer X pxtone")
+set(USE_WAVPACK OFF CACHE BOOL "SDL Mixer X wavpack")
 add_subdirectory(src/SexyAppFramework/sound/SDL-Mixer-X)
 
 # Patch SDL-Mixer-X's transitive SDL2 dep without touching vendored CMake files
