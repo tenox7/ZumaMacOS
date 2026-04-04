@@ -393,19 +393,37 @@ if(APPLE AND NOT IOS)
 		DEPENDS pvz-portable
 		COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/dmg_temp" "${CMAKE_BINARY_DIR}/ZumaPortable.dmg"
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/dmg_temp"
-		COMMENT "Creating signed DMG..."
-	)
-
-	add_custom_command(TARGET dmg POST_BUILD
 		COMMAND find "$<TARGET_BUNDLE_DIR:pvz-portable>" -name "*.dylib" -exec codesign --force --sign - {} +
 		COMMAND codesign --force --sign - "$<TARGET_BUNDLE_DIR:pvz-portable>"
 		COMMAND ${CMAKE_COMMAND} -E copy_directory "$<TARGET_BUNDLE_DIR:pvz-portable>" "${CMAKE_BINARY_DIR}/dmg_temp/Zuma Portable.app"
 		COMMAND ${CMAKE_COMMAND} -E create_symlink /Applications "${CMAKE_BINARY_DIR}/dmg_temp/Applications"
 		COMMAND hdiutil create -volname "Zuma Portable" -srcfolder "${CMAKE_BINARY_DIR}/dmg_temp" -ov -format UDZO "${CMAKE_BINARY_DIR}/ZumaPortable.dmg"
 		COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/dmg_temp"
+		COMMENT "Creating signed DMG..."
 	)
 
+	set(OTHER_ARCH_BUILD_DIR "" CACHE PATH "Other architecture build dir for universal DMG")
+	if(OTHER_ARCH_BUILD_DIR)
+		add_custom_target(dmg-universal
+			DEPENDS pvz-portable
+			COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/dmg_temp" "${CMAKE_BINARY_DIR}/ZumaPortable.dmg"
+			COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/dmg_temp"
+			COMMAND ${CMAKE_COMMAND} -E copy_directory "$<TARGET_BUNDLE_DIR:pvz-portable>" "${CMAKE_BINARY_DIR}/dmg_temp/Zuma Portable.app"
+			COMMAND lipo -create
+				"$<TARGET_BUNDLE_DIR:pvz-portable>/Contents/MacOS/zuma-portable"
+				"${OTHER_ARCH_BUILD_DIR}/zuma-portable.app/Contents/MacOS/zuma-portable"
+				-output "${CMAKE_BINARY_DIR}/dmg_temp/Zuma Portable.app/Contents/MacOS/zuma-portable"
+			COMMAND find "${CMAKE_BINARY_DIR}/dmg_temp/Zuma Portable.app" -name "*.dylib" -exec codesign --force --sign - {} +
+			COMMAND codesign --force --sign - "${CMAKE_BINARY_DIR}/dmg_temp/Zuma Portable.app"
+			COMMAND ${CMAKE_COMMAND} -E create_symlink /Applications "${CMAKE_BINARY_DIR}/dmg_temp/Applications"
+			COMMAND hdiutil create -volname "Zuma Portable" -srcfolder "${CMAKE_BINARY_DIR}/dmg_temp" -ov -format UDZO "${CMAKE_SOURCE_DIR}/ZumaPortable.dmg"
+			COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/dmg_temp"
+			COMMENT "Creating universal signed DMG..."
+		)
+	endif()
+
 	set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES
+		"${CMAKE_SOURCE_DIR}/ZumaPortable.dmg"
 		"${CMAKE_BINARY_DIR}/ZumaPortable.dmg"
 		"${CMAKE_BINARY_DIR}/dmg_temp"
 	)
