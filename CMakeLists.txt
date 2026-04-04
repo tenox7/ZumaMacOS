@@ -390,14 +390,23 @@ endif()
 
 if(APPLE AND NOT IOS)
 	add_custom_target(dmg
-		COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_BINARY_DIR}/dmg"
-		COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/dmg"
-		COMMAND ${CMAKE_COMMAND} -E copy_directory
-			"$<TARGET_BUNDLE_DIR:pvz-portable>" "${CMAKE_BINARY_DIR}/dmg/Zuma Portable.app"
-		COMMAND hdiutil create -volname "Zuma Portable" -srcfolder "${CMAKE_BINARY_DIR}/dmg"
-			-ov -format UDZO "${CMAKE_BINARY_DIR}/ZumaPortable.dmg"
-		COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_BINARY_DIR}/dmg"
 		DEPENDS pvz-portable
-		COMMENT "Creating ZumaPortable.dmg"
+		COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/dmg_temp" "${CMAKE_BINARY_DIR}/ZumaPortable.dmg"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/dmg_temp"
+		COMMENT "Creating signed DMG..."
+	)
+
+	add_custom_command(TARGET dmg POST_BUILD
+		COMMAND find "$<TARGET_BUNDLE_DIR:pvz-portable>" -name "*.dylib" -exec codesign --force --sign - {} +
+		COMMAND codesign --force --sign - "$<TARGET_BUNDLE_DIR:pvz-portable>"
+		COMMAND ${CMAKE_COMMAND} -E copy_directory "$<TARGET_BUNDLE_DIR:pvz-portable>" "${CMAKE_BINARY_DIR}/dmg_temp/Zuma Portable.app"
+		COMMAND ${CMAKE_COMMAND} -E create_symlink /Applications "${CMAKE_BINARY_DIR}/dmg_temp/Applications"
+		COMMAND hdiutil create -volname "Zuma Portable" -srcfolder "${CMAKE_BINARY_DIR}/dmg_temp" -ov -format UDZO "${CMAKE_BINARY_DIR}/ZumaPortable.dmg"
+		COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/dmg_temp"
+	)
+
+	set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES
+		"${CMAKE_BINARY_DIR}/ZumaPortable.dmg"
+		"${CMAKE_BINARY_DIR}/dmg_temp"
 	)
 endif()
