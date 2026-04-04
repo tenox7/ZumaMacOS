@@ -2243,29 +2243,34 @@ void SexyAppBase::LoadingThreadCompleted()
 {
 }
 
+static void *LoadingThreadEntry(void *data)
+{
+	SexyAppBase* aSexyApp = (SexyAppBase*)data;
+	aSexyApp->LoadingThreadProc();
+	aSexyApp->mLoadingThreadCompleted = true;
+	return NULL;
+}
+
 void SexyAppBase::LoadingThreadProcStub(SexyAppBase *theArg)
 {
 	SexyAppBase* aSexyApp = theArg;
-	
-	aSexyApp->LoadingThreadProc();		
-
+	aSexyApp->LoadingThreadProc();
 	printf("Resource Loading Time: %d\r\n", (SDL_GetTicks() - aSexyApp->mTimeLoaded));
-
 	aSexyApp->mLoadingThreadCompleted = true;
 }
 
 void SexyAppBase::StartLoadingThread()
-{	
+{
 	if (!mLoadingThreadStarted)
 	{
-		mYieldMainThread = true; 
-		//::SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);		
+		mYieldMainThread = true;
 		mLoadingThreadStarted = true;
 #ifdef __EMSCRIPTEN__
 		LoadingThreadProcStub(this);
 #else
-		//_beginthread(LoadingThreadProcStub, 0, this);
-		std::thread(LoadingThreadProcStub, this).detach();
+		pthread_t thread;
+		pthread_create(&thread, NULL, LoadingThreadEntry, this);
+		pthread_detach(thread);
 #endif
 	}
 }

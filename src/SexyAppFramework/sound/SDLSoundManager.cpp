@@ -26,8 +26,9 @@
 #include "SDLSoundInstance.h"
 #include "paklib/PakInterface.h"
 
-#include "ogg/ivorbiscodec.h"
-#include "ogg/ivorbisfile.h"
+#include <ogg/ogg.h>
+#include <vorbis/codec.h>
+#include <vorbis/vorbisfile.h>
 
 using namespace Sexy;
 
@@ -97,7 +98,7 @@ Mix_Chunk *TREMOR_LoadOGG(const std::string& theFilename)
                     int aNumBytes = aLenBytes;
                     while (aNumBytes > 0)
                     {
-                        long ret=ov_read(&vf,(char*)aPtr,aNumBytes,&current_section);
+                        long ret=ov_read(&vf,(char*)aPtr,aNumBytes,0,2,1,&current_section);
                         if (ret == 0)
                             break;
                         else if (ret < 0)
