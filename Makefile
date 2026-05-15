@@ -35,6 +35,7 @@ x64: src/CircleShoot src/SexyAppFrameworkFlat
 
 src/CircleShoot:
 	git clone https://github.com/kyle-sylvestre/CircleShootApp.git $@
+	for p in scripts/patches/*.patch; do git -C $@ apply "$(CURDIR)/$$p"; done
 
 src/SexyAppFrameworkFlat: src/CircleShoot
 	bash scripts/create_flat_directory.sh

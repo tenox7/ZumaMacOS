@@ -1,0 +1,102 @@
+diff --git a/source/CircleShoot/CircleShootApp.cpp b/source/CircleShoot/CircleShootApp.cpp
+index 3a58f65..a67bd07 100644
+--- a/source/CircleShoot/CircleShootApp.cpp
++++ b/source/CircleShoot/CircleShootApp.cpp
+@@ -1019,9 +1019,6 @@ void CircleShootApp::FinishOptionsDialog(bool saveSettings)
+     {
+         if (saveSettings)
+         {
+-            bool fullscreen = dialog->mFullScreenCheckbox->IsChecked();
+-            bool acceleration = dialog->m3DAccelCheckbox->IsChecked();
+-            SwitchScreenMode(fullscreen != true, acceleration);
+             bool cursorsEnabled = dialog->mCustomCursorsCheckbox->IsChecked();
+             EnableCustomCursors(cursorsEnabled);
+             ClearUpdateBacklog();
+diff --git a/source/CircleShoot/OptionsDialog.cpp b/source/CircleShoot/OptionsDialog.cpp
+index 986408f..c725124 100644
+--- a/source/CircleShoot/OptionsDialog.cpp
++++ b/source/CircleShoot/OptionsDialog.cpp
+@@ -1,6 +1,7 @@
+ #include "Zuma_Prefix.pch"
+ 
+ #include <SexyAppFramework/SexyAppBase.h>
++#include <SexyAppFramework/GLInterface.h>
+ #include <SexyAppFramework/WidgetManager.h>
+ #include <SexyAppFramework/Slider.h>
+ #include <SexyAppFramework/Checkbox.h>
+@@ -39,9 +40,11 @@ OptionsDialog::OptionsDialog(bool inMainMenu) : CircleDialog(Sexy::IMAGE_DIALOG_
+     mButtonRegister = MakeButton(7, this, LS(STRING_ID_REGISTER), CircleButton::CB_ClickSound, NULL, 3);
+     mButtonBack = MakeButton(8, this, LS(STRING_ID_BACK_TO_MAIN_MENU), CircleButton::CB_ClickSound, NULL, 3);
+ 
+-    mFullScreenCheckbox->mChecked = !gSexyAppBase->mIsWindowed;
++    int winW, winH;
++    SDL_GetWindowSize((SDL_Window *)gSexyAppBase->mWindow, &winW, &winH);
++    mFullScreenCheckbox->mChecked = (winW >= CIRCLE_WINDOW_WIDTH * 2);
+     mCustomCursorsCheckbox->mChecked = gSexyAppBase->mCustomCursorsEnabled;
+-    m3DAccelCheckbox->mChecked = gSexyAppBase->Is3DAccelerated();
++    m3DAccelCheckbox->mChecked = !gForceNearestFilter;
+     mButtonBack->SetVisible(inMainMenu);
+ 
+     // if (gSexyAppBase->mDontUpdate)
+@@ -153,10 +156,9 @@ void OptionsDialog::Draw(Graphics *g)
+     g->DrawString(LS(STRING_ID_MUSIC_VOLUME), aPosX, mMusicVolumeSlider->mY - mY + FONT_DIALOG->GetAscent() + 5);
+     g->DrawString(LS(STRING_ID_SOUND_EFFECTS), aPosX, mSfxVolumeSlider->mY - mY + FONT_DIALOG->GetAscent() + 5);
+ 
+-    DrawCheckboxText(g, LS(STRING_ID_FULLSCREEN), mFullScreenCheckbox);
++    DrawCheckboxText(g, "2x Window", mFullScreenCheckbox);
+     DrawCheckboxText(g, LS(STRING_ID_CUSTOM_CURSORS), mCustomCursorsCheckbox);
+-    DrawCheckboxText(g, Sexy::StrFormat("    %s    ", LS(STRING_ID_3D_HARDWARE_ACCELERATION)), m3DAccelCheckbox);
+-    //DrawCheckboxText(g, "    3-D Hardware Acceleration          ", m3DAccelCheckbox);
++    DrawCheckboxText(g, "Smooth Scaling", m3DAccelCheckbox);
+ }
+ 
+ void OptionsDialog::ButtonPress(int theId)
+@@ -202,37 +204,16 @@ void OptionsDialog::CheckboxChecked(int theId, bool checked)
+ {
+     if (theId == 2)
+     {
+-        if (gSexyAppBase->mForceFullscreen && !checked)
+-        {
+-            gSexyAppBase->DoDialog(6, true, 
+-                                   LS(STRING_ID_NO_WINDOWED_MODE),
+-                                   LS(STRING_ID_WINDOWED_MODE_IS_ONLY_AVAILABLE),
+-                                   LS(DIALOG_BUTTON_OK),
+-                                   BUTTONS_FOOTER);
+-            mFullScreenCheckbox->mChecked = true;
+-        }
+-    }
+-    else if (theId == 4 && checked)
+-    {
+-        if (gSexyAppBase->Is3DAccelerationSupported())
+-        {
+-            if (!gSexyAppBase->Is3DAccelerationRecommended())
+-            {
+-                gSexyAppBase->DoDialog(5, true, 
+-                                       LS(STRING_ID_WARNING),
+-                                       LS(STRING_ID_YOUR_VIDEO_CARD_MAY_NOT_FULLY_SUPPORT_THIS_FEATURE),
+-                                       LS(DIALOG_BUTTON_OK),
+-                                       BUTTONS_FOOTER);
+-            }
+-        }
+-        else
+-        {
+-            m3DAccelCheckbox->mChecked = false;
+-            gSexyAppBase->DoDialog(5, true, 
+-                                   LS(STRING_ID_NOT_SUPPORTED),
+-                                   LS(STRING_ID_HARDWARE_ACCELERATION_CANNOT_BE_ENABLED),
+-                                   LS(DIALOG_BUTTON_OK), 
+-                                   BUTTONS_FOOTER);
+-        }
++        int scale = checked ? 2 : 1;
++        SDL_SetWindowSize((SDL_Window *)gSexyAppBase->mWindow,
++                          CIRCLE_WINDOW_WIDTH * scale, CIRCLE_WINDOW_HEIGHT * scale);
++        gSexyAppBase->mGLInterface->UpdateViewport();
++        gSexyAppBase->mWidgetManager->Resize(
++            gSexyAppBase->mScreenBounds, gSexyAppBase->mGLInterface->mPresentationRect);
++        gSexyAppBase->mWidgetManager->MarkAllDirty();
++    }
++    else if (theId == 4)
++    {
++        gForceNearestFilter = !checked;
+     }
+ }
